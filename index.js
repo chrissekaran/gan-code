@@ -2,18 +2,41 @@ const assert = require('assert');
 const fs = require('fs-extra');
 const fetch = require('node-fetch');
 
+// load up the express framework and body-parser helper
+const express = require('express');
+const bodyParser = require('body-parser');
+
+// create an instance of express to serve our end points
+const app = express();
+
+/// configure our express instance with some body-parser settings
+// including handling JSON data
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// this is where we'll handle our various routes from and we load the routing file
+const routes = require('./routes/routes.js')(app, fs);
+
 const protocol = 'http';
 const host = '127.0.0.1';
 const port = '8080';
-const server = `${protocol}://${host}:${port}`;
+const uri = `${protocol}://${host}:${port}`;
+
+// finally, launch our server on port 8080.
+const server = app.listen(port, () => {
+  console.log('listening on port %s...', server.address().port);
+});
+
+
+////
 
 (async () => {
   // get a city by tag ("excepteurus")
-  let result = await fetch(`${server}/cities-by-tag?tag=excepteurus&isActive=true`);
+  let result = await fetch(`${uri}/cities-by-tag?tag=excepteurus&isActive=true`);
 
   // oh, authentication is required
   assert.strictEqual(result.status, 401);
-  result = await fetch(`${server}/cities-by-tag?tag=excepteurus&isActive=true`, {
+  result = await fetch(`${uri}/cities-by-tag?tag=excepteurus&isActive=true`, {
     headers: { 'Authorization': 'bearer dGhlc2VjcmV0dG9rZW4=' }
   });
 
@@ -31,7 +54,7 @@ const server = `${protocol}://${host}:${port}`;
   assert.strictEqual(city.longitude, -37.257104);
 
   // find the distance between two cities
-  result = await fetch(`${server}/distance?from=${city.guid}&to=17f4ceee-8270-4119-87c0-9c1ef946695e`, {
+  result = await fetch(`${uri}/distance?from=${city.guid}&to=17f4ceee-8270-4119-87c0-9c1ef946695e`, {
     headers: { 'Authorization': 'bearer dGhlc2VjcmV0dG9rZW4=' }
   });
 
