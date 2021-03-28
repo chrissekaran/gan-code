@@ -47,7 +47,6 @@ const addressesRoutes = (app, fs) => {
                     res.status(200).send(JSON.stringify(body));
                 });
             } else {  
-                console.log(">>>>No"); 
                 res.status(202).send();
             }
         }
@@ -65,7 +64,6 @@ const addressesRoutes = (app, fs) => {
             var fromCityGuid = req.query.from;
             var distanceInKm = req.query.distance;
             var requestMapToStore = { "from": fromCityGuid, "distance": new Number(distanceInKm) };
-            console.log("Storing in resultMap:"+ JSON.stringify(requestMapToStore));
             resultMap.set('2152f96f-50c7-4d76-9e18-f7033bd14428', JSON.stringify(requestMapToStore));
             var fullUrl = req.protocol + '://' + req.get('host') + '/area-result/2152f96f-50c7-4d76-9e18-f7033bd14428';
 
@@ -78,7 +76,6 @@ const addressesRoutes = (app, fs) => {
     app.get('/distance', (req, res) => {
         
         var authHeader = req.get('Authorization');
-        console.log('Auth Header: '+authHeader);
 
         if(authHeader == null || authHeader != authHeader) {
             resBody = '{ error: "Auth header is invalid or missing" }';
