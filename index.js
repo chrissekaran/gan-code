@@ -20,11 +20,11 @@ const routes = require('./routes/routes.js')(app, fs);
 const protocol = 'http';
 const host = '127.0.0.1';
 const port = '8080';
-const uri = `${protocol}://${host}:${port}`;
+const server = `${protocol}://${host}:${port}`;
 
 // finally, launch our server on port 8080.
-const server = app.listen(port, () => {
-  console.log('listening on port %s...', server.address().port);
+const expressServer = app.listen(port, () => {
+  console.log('listening on port %s...', expressServer.address().port);
 });
 
 
@@ -32,11 +32,11 @@ const server = app.listen(port, () => {
 
 (async () => {
   // get a city by tag ("excepteurus")
-  let result = await fetch(`${uri}/cities-by-tag?tag=excepteurus&isActive=true`);
+  let result = await fetch(`${server}/cities-by-tag?tag=excepteurus&isActive=true`);
 
   // oh, authentication is required
   assert.strictEqual(result.status, 401);
-  result = await fetch(`${uri}/cities-by-tag?tag=excepteurus&isActive=true`, {
+  result = await fetch(`${server}/cities-by-tag?tag=excepteurus&isActive=true`, {
     headers: { 'Authorization': 'bearer dGhlc2VjcmV0dG9rZW4=' }
   });
 
@@ -54,7 +54,7 @@ const server = app.listen(port, () => {
   assert.strictEqual(city.longitude, -37.257104);
 
   // find the distance between two cities
-  result = await fetch(`${uri}/distance?from=${city.guid}&to=17f4ceee-8270-4119-87c0-9c1ef946695e`, {
+  result = await fetch(`${server}/distance?from=${city.guid}&to=17f4ceee-8270-4119-87c0-9c1ef946695e`, {
     headers: { 'Authorization': 'bearer dGhlc2VjcmV0dG9rZW4=' }
   });
 
@@ -88,10 +88,9 @@ const server = app.listen(port, () => {
     result = await fetch(body.resultsUrl, {
       headers: { 'Authorization': 'bearer dGhlc2VjcmV0dG9rZW4=' }
     });
-    status = result.status;
+    status = result.status;  
     // return 202 while the result is not yet ready, otherwise 200
     assert.ok(status === 200 || status === 202, 'Unexpected status code');
-
     // let's wait a bit if the result is not ready yet
     if (status === 202) {
       await new Promise(resolve => setTimeout(resolve, 100));
