@@ -27,9 +27,6 @@ const expressServer = app.listen(port, () => {
   console.log('listening on port %s...', expressServer.address().port);
 });
 
-
-////
-
 (async () => {
   // get a city by tag ("excepteurus")
   let result = await fetch(`${server}/cities-by-tag?tag=excepteurus&isActive=true`);
@@ -90,7 +87,7 @@ const expressServer = app.listen(port, () => {
     });
     status = result.status;  
     // return 202 while the result is not yet ready, otherwise 200
-    assert.ok(status === 200 || status === 202, 'Unexpected status code');
+    assert.ok(status == 200 || status == 202, 'Unexpected status code');
     // let's wait a bit if the result is not ready yet
     if (status === 202) {
       await new Promise(resolve => setTimeout(resolve, 100));

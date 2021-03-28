@@ -4,15 +4,13 @@ let authHeader = 'bearer dGhlc2VjcmV0dG9rZW4=';
 const resultMap = new Map();
 
 const addressesRoutes = (app, fs) => {
-    // variables
     const dataPath = './data/addresses.json';
 
     app.get('/all-cities', (req, res) => {
         
         var authHeaderRecd = req.get('Authorization');
-        console.log('Auth Header: '+authHeader);
 
-        if(authHeaderRecd == null || authHeader != authHeaderRecd) {
+        if(authHeaderRecd === null || authHeader !== authHeaderRecd) {
             resBody = '{ error: "Auth header is invalid or missing" }';
             res.status(401).send(resBody);
         } else {
@@ -26,65 +24,57 @@ const addressesRoutes = (app, fs) => {
         }
     });
 
-    app.get('/area-result', (req, res) => {
+    app.get('/area-result/:cacheId', (req, res) => {
         
         var authHeaderRecd = req.get('Authorization');
-        console.log('Auth Header: '+authHeader);
 
         if(authHeaderRecd == null || authHeader != authHeaderRecd) {
             resBody = '{ error: "Auth header is invalid or missing" }';
             res.status(401).send(resBody);
         } else {
-            if(resultMap.has('2152f96f-50c7-4d76-9e18-f7033bd14428')) {                
-                res.status(200).send(resultMap.get('2152f96f-50c7-4d76-9e18-f7033bd14428'));
-            } else {
+            if(resultMap.has(req.params.cacheId)) {  
+                fs.readFile(dataPath, 'utf8', (err, data) => {
+                    if (err) {
+                        throw err;
+                    }
+                    var cities = JSON.parse(data);
+                    var requestParamsJson = resultMap.get(req.params.cacheId);
+
+                    var requestParams = JSON.parse(requestParamsJson);
+                    var fromCity = cities.filter(c => (c.guid === requestParams.from))[0];
+                    var distanceInKm = requestParams.distance;
+                    var body = {"cities": citiesInRange(cities, fromCity, requestParams.distance)};
+                    res.status(200).send(JSON.stringify(body));
+                });
+            } else {  
+                console.log(">>>>No"); 
                 res.status(202).send();
             }
         }
     });
 
-
     app.get('/area', (req, res) => {
         
         var authHeader = req.get('Authorization');
-        console.log('Auth Header: '+authHeader);
 
         if(authHeader === null || authHeader !== authHeader) {
             resBody = '{ error: "Auth header is invalid or missing" }';
             res.status(401).send(resBody);
         } else {
-/*
 
-            fs.readFile(dataPath, 'utf8', (err, data) => {
-                if (err) {
-                    throw err;
-                }
-                var fromCityGuid = req.query.from;
-                var distanceInKm = req.query.distance;
-                var cities = JSON.parse(data);
-                var fromCity = cities.filter(c => c.guid === fromCityGuid)[0];
-            
-                console.log("From : "+JSON.stringify(fromCity));
-
-                let citiesInRangeRes = async () => { citiesInRange(cities, fromCity, distanceInKm); }
-                citiesInRangeRes().then((citiesInRangeValue) => resultMap.set('2152f96f-50c7-4d76-9e18-f7033bd14428', '{"cities":'+JSON.stringify(citiesInRangeValue)+'}'));
-            });
-*/
-
+            var fromCityGuid = req.query.from;
+            var distanceInKm = req.query.distance;
+            var requestMapToStore = { "from": fromCityGuid, "distance": new Number(distanceInKm) };
+            console.log("Storing in resultMap:"+ JSON.stringify(requestMapToStore));
+            resultMap.set('2152f96f-50c7-4d76-9e18-f7033bd14428', JSON.stringify(requestMapToStore));
             var fullUrl = req.protocol + '://' + req.get('host') + '/area-result/2152f96f-50c7-4d76-9e18-f7033bd14428';
-            console.log("URI for result: "+fullUrl);
-            var body = { "resultsUrl": fullUrl };
-            
-            res.status(202).send(JSON.stringify(body));            
+
+            var body = { resultsUrl: fullUrl };            
+            res.status(202).send(JSON.stringify(body));           
         }
     });
 
 
-
-
-
-
-    //////////////////
     app.get('/distance', (req, res) => {
         
         var authHeader = req.get('Authorization');
@@ -102,17 +92,11 @@ const addressesRoutes = (app, fs) => {
                 var from = req.query.from;
                 var to = req.query.to;
 
-                console.log('queryParam - from: '+from);
-                console.log('queryParam - to: '+to);
-
                 var cities = JSON.parse(data);
                 var fromCity = cities.filter(c => c.guid === from)[0];
                 var toCity = cities.filter(c => c.guid === to)[0];
 
-                console.log("From : "+JSON.stringify(fromCity));
-                console.log("To: "+JSON.stringify(toCity));                 
                 var d = getDistanceFromLatLonInKm(fromCity.latitude, fromCity.longitude, toCity.latitude, toCity.longitude);
-                console.log("calc distance: "+d);
                 var body = { 'from': fromCity, 'to': toCity, 'unit': 'km', 'distance': new Number(d)};
                 res.status(200).send(body);
             });
@@ -122,7 +106,6 @@ const addressesRoutes = (app, fs) => {
     app.get('/cities-by-tag', (req, res) => {
         
         var authHeader = req.get('Authorization');
-        console.log('Auth Header: '+authHeader);
 
         if(authHeader == null || authHeader != authHeader) {
             resBody = '{ error: "Auth header is invalid or missing" }';
@@ -136,9 +119,6 @@ const addressesRoutes = (app, fs) => {
                 var tag = req.query.tag;
                 var isActive = req.query.isActive;
 
-                console.log('queryParam - tag: '+tag);
-                console.log('queryParam - isActive: '+isActive);
-
                 var cities = JSON.parse(data);
                 let filteredByAllFilters = cities.filter(c => c.tags.includes(tag)).filter(c => c.isActive);
                 
@@ -149,13 +129,10 @@ const addressesRoutes = (app, fs) => {
   };
   
   function citiesInRange(cities, fromCity, distanceInKm) {    
-    let citiesWithinRange = cities.filter(toCity => new Number(getDistanceFromLatLonInKm(fromCity.latitude, fromCity.longitude, toCity.latitude, toCity.longitude)) < (distanceInKm)).filter(city => (city.guid !== fromCity.guid));
 
-    console.log("cities : "+cities.length);
-    console.log("fromCity : "+fromCity.guid);
-    console.log("distanceInKm : "+distanceInKm);
-    console.log("cities within range : "+ citiesWithinRange.map(c => c.guid));
-    return citiesWithinRange;
+    let citiesInRange = cities.filter(toCity => getDistanceFromLatLonInKm(fromCity.latitude, fromCity.longitude, toCity.latitude, toCity.longitude) < distanceInKm)
+    .filter(city => (city.guid !== fromCity.guid));
+    return citiesInRange;
   };
 
   function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
